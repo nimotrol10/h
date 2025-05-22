@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tabla de Clasificación</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    table { width: 80%; margin: auto; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #ccc; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h2>Tabla de Clasificación</h2>
+  <table id="rankingTable">
+    <thead><tr><th>Jugador</th><th>Puntuación</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    // Tu configuración Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAcnoVa8KN56wfWr0hJ_-26OUVVQ3H_H2k",
+      authDomain: "ranking-393eb.firebaseapp.com",
+      databaseURL: "https://ranking-393eb-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ranking-393eb",
+      storageBucket: "ranking-393eb.firebasestorage.app",
+      messagingSenderId: "577046310067",
+      appId: "1:577046310067:web:243c11e1fa2e94fc2a14c6",
+      measurementId: "G-TMHNC6G8ZM"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Leer y mostrar datos
+    db.ref('ranking').once('value').then(snapshot => {
+      const data = snapshot.val() || {};
+      const entries = Object.entries(data);
+      entries.sort((a,b) => b[1] - a[1]);
+
+      const tbody = document.querySelector('#rankingTable tbody');
+      entries.forEach(([name, score]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${name}</td><td>${score}</td>`;
+        tbody.appendChild(row);
+      });
+    }).catch(error => {
+      console.error('Error al leer datos:', error);
+    });
+  </script>
+</body>
+</html>
