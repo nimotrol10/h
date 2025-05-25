@@ -5,32 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ranking de Usuarios</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  table { border-collapse: collapse; width: 100%; max-width: 600px; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  th { background-color: #f2f2f2; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+    color: #333;
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+  }
+  .container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+    max-width: 600px;
+    width: 100%;
+    padding: 25px 35px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+  }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+    font-size: 16px;
+  }
+  thead tr {
+    background-color: #34495e;
+    color: white;
+    font-weight: 600;
+    border-radius: 12px;
+  }
+  thead tr th {
+    padding: 12px 15px;
+    text-align: left;
+  }
+  tbody tr {
+    background-color: #ecf0f1;
+    border-radius: 12px;
+    transition: background-color 0.3s ease;
+    cursor: default;
+  }
+  tbody tr:hover {
+    background-color: #d0d7de;
+  }
+  tbody tr td {
+    padding: 12px 15px;
+  }
+  tbody tr:nth-child(odd) {
+    background-color: #f7f9fc;
+  }
+  .posicion {
+    font-weight: 700;
+    color: #2980b9;
+    width: 60px;
+  }
+  .loader {
+    text-align: center;
+    padding: 15px 0;
+    color: #7f8c8d;
+  }
 </style>
 </head>
 <body>
-
-<h1>Ranking de Usuarios</h1>
-<table id="ranking-table">
-  <thead>
-    <tr>
-      <th>Posición</th>
-      <th>Usuario</th>
-      <th>Puntuación</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- Aquí se insertan los usuarios -->
-  </tbody>
-</table>
+  <div class="container">
+    <h1>Ranking de Usuarios</h1>
+    <table id="ranking-table" aria-label="Tabla de ranking">
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Jugador</th>
+          <th>Puntuación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="3" class="loader">Cargando datos...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
 <script type="module">
-// Importar funciones necesarias de Firebase
+// Importar funciones de Firebase modular
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
 // Configuración Firebase
 const firebaseConfig = {
@@ -47,70 +106,70 @@ const firebaseConfig = {
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
-// Referencia a la rama "usuarios"
 const usuariosRef = ref(db, 'usuarios');
 
-// Función para cargar y mostrar ranking
-async function cargarRanking() {
-  try {
-    const snapshot = await get(usuariosRef);
-    if (snapshot.exists()) {
-      const usuariosData = snapshot.val();
-
-      // Vamos a crear un array con objetos {nombre: string, puntuacion: number}
-      const ranking = [];
-
-      // La estructura que muestras es anidada, según ejemplo:
-      // usuarios -> "nombreUsuario" -> nombreJugador -> "nombreUsuario" -> {puntuacion: X}
-      // Por ejemplo: usuarios["\"hola"].nombreJugador["\"hola"].puntuacion
-
-      for (const usuarioKey in usuariosData) {
-        const nombreJugadorObj = usuariosData[usuarioKey].nombreJugador;
-        if (!nombreJugadorObj) continue;
-
-        // nombreJugadorObj puede tener varios usuarios con puntuaciones, iteramos:
-        for (const nombreJugadorKey in nombreJugadorObj) {
-          const puntuacionObj = nombreJugadorObj[nombreJugadorKey];
-          if (puntuacionObj && typeof puntuacionObj.puntuacion === 'number') {
-            // Guardamos el usuario sin las comillas escapadas para mostrar limpio
-            const nombreLimpio = usuarioKey.replace(/\"/g, '') || nombreJugadorKey.replace(/\"/g, '');
-            ranking.push({
-              nombre: nombreLimpio,
-              puntuacion: puntuacionObj.puntuacion
-            });
-          }
-        }
-      }
-
-      // Ordenar ranking de mayor a menor puntuación
-      ranking.sort((a, b) => b.puntuacion - a.puntuacion);
-
-      // Mostrar en tabla
-      const tbody = document.querySelector("#ranking-table tbody");
-      tbody.innerHTML = "";
-
-      ranking.forEach((user, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${user.nombre}</td>
-          <td>${user.puntuacion}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } else {
-      console.log("No hay datos en usuarios");
-    }
-  } catch (error) {
-    console.error("Error leyendo usuarios:", error);
-  }
+// Función para limpiar las comillas escapadas
+function limpiarNombre(nombre) {
+  return nombre.replace(/\"/g, '');
 }
 
-// Cargar ranking al iniciar
-cargarRanking();
+// Renderizar tabla ranking
+function renderRanking(ranking) {
+  const tbody = document.querySelector("#ranking-table tbody");
+  tbody.innerHTML = "";
 
+  if (ranking.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="loader">No hay datos disponibles.</td></tr>`;
+    return;
+  }
+
+  ranking.forEach((user, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="posicion">${i + 1}</td>
+      <td>${user.nombre}</td>
+      <td>${user.puntuacion}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Escuchar cambios en tiempo real
+onValue(usuariosRef, (snapshot) => {
+  if (snapshot.exists()) {
+    const usuariosData = snapshot.val();
+    const ranking = [];
+
+    // Recorremos la estructura
+    for (const usuarioKey in usuariosData) {
+      const nombreJugadorObj = usuariosData[usuarioKey].nombreJugador;
+      if (!nombreJugadorObj) continue;
+
+      // Aquí iteramos las claves internas de nombreJugador: esos son los nombres que queremos mostrar
+      for (const nombreJugadorKey in nombreJugadorObj) {
+        const puntuacionObj = nombreJugadorObj[nombreJugadorKey];
+        if (puntuacionObj && typeof puntuacionObj.puntuacion === 'number') {
+          const nombreLimpio = limpiarNombre(nombreJugadorKey); // <--- Aquí usamos nombreJugadorKey
+          ranking.push({
+            nombre: nombreLimpio,
+            puntuacion: puntuacionObj.puntuacion
+          });
+        }
+      }
+    }
+
+    // Ordenar desc
+    ranking.sort((a,b) => b.puntuacion - a.puntuacion);
+
+    renderRanking(ranking);
+  } else {
+    renderRanking([]);
+  }
+}, (error) => {
+  console.error("Error leyendo datos en tiempo real:", error);
+  const tbody = document.querySelector("#ranking-table tbody");
+  tbody.innerHTML = `<tr><td colspan="3" class="loader">Error al cargar datos.</td></tr>`;
+});
 </script>
-
 </body>
 </html>
