@@ -3,93 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <title>Ranking de Jugadores</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAcnoVa8KN56wfWr0hJ_-26OUVVQ3H_H2k",
+      authDomain: "ranking-393eb.firebaseapp.com",
+      databaseURL: "https://ranking-393eb-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ranking-393eb",
+      storageBucket: "ranking-393eb.firebasestorage.app",
+      messagingSenderId: "577046310067",
+      appId: "1:577046310067:web:243c11e1fa2e94fc2a14c6",
+      measurementId: "G-TMHNC6G8ZM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const lista = document.getElementById("ranking");
+
+    function renderRanking(data) {
+      lista.innerHTML = "";
+      const jugadores = Object.values(data);
+      jugadores.sort((a, b) => b.puntuacion - a.puntuacion);
+      jugadores.forEach((jugador, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>#${index + 1}</strong> ${jugador.nombreJugador} — ${jugador.puntuacion} pts`;
+        lista.appendChild(li);
+      });
+    }
+
+    // Escuchar en tiempo real
+    const usuariosRef = ref(db, 'usuarios');
+    onValue(usuariosRef, (snapshot) => {
+      if (snapshot.exists()) {
+        renderRanking(snapshot.val());
+      } else {
+        lista.innerHTML = "<li>No hay datos de jugadores.</li>";
+      }
+    });
+  </script>
+
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #1e3c72, #2a5298);
-      color: white;
+      font-family: "Segoe UI", sans-serif;
+      background: #f2f2f2;
+      color: #333;
       text-align: center;
-      padding: 2rem;
+      padding: 40px;
     }
     h1 {
-      margin-bottom: 2rem;
+      margin-bottom: 30px;
     }
-    table {
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 400px;
       margin: auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: rgba(255, 255, 255, 0.1);
     }
-    th, td {
-      padding: 1rem;
-      border-bottom: 1px solid white;
-    }
-    th {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
-    tr:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+    li {
+      background: white;
+      margin: 10px 0;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
   <h1>🏆 Ranking de Jugadores</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Jugador</th>
-        <th>Puntuación</th>
-      </tr>
-    </thead>
-    <tbody id="ranking">
-      <!-- Los datos se insertarán aquí -->
-    </tbody>
-  </table>
-
-  <script>
-    // Configura tu proyecto Firebase:
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_DOMINIO.firebaseapp.com",
-      databaseURL: "https://TU_PROYECTO.firebaseio.com",
-      projectId: "TU_PROYECTO",
-      storageBucket: "TU_PROYECTO.appspot.com",
-      messagingSenderId: "XXXXXXXXXXX",
-      appId: "TU_APP_ID"
-    };
-
-    // Inicializar Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // Leer los datos del nodo 'usuarios'
-    db.ref("usuarios").once("value").then(snapshot => {
-      const data = snapshot.val();
-      const jugadores = [];
-
-      for (let id in data) {
-        const jugador = data[id];
-        if (jugador.nombreJugador && jugador.puntuacion !== undefined) {
-          jugadores.push({
-            nombre: jugador.nombreJugador,
-            puntuacion: jugador.puntuacion
-          });
-        }
-      }
-
-      // Ordenar de mayor a menor
-      jugadores.sort((a, b) => b.puntuacion - a.puntuacion);
-
-      // Insertar en la tabla
-      const tbody = document.getElementById("ranking");
-      jugadores.forEach(j => {
-        const row = document.createElement("tr");
-        row.innerHTML = `<td>${j.nombre}</td><td>${j.puntuacion}</td>`;
-        tbody.appendChild(row);
-      });
-    });
-  </script>
+  <ul id="ranking">
+    <li>Cargando...</li>
+  </ul>
 </body>
 </html>
