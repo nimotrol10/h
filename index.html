@@ -1,81 +1,116 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ranking de Jugadores</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAcnoVa8KN56wfWr0hJ_-26OUVVQ3H_H2k",
-      authDomain: "ranking-393eb.firebaseapp.com",
-      databaseURL: "https://ranking-393eb-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "ranking-393eb",
-      storageBucket: "ranking-393eb.firebasestorage.app",
-      messagingSenderId: "577046310067",
-      appId: "1:577046310067:web:243c11e1fa2e94fc2a14c6",
-      measurementId: "G-TMHNC6G8ZM"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const lista = document.getElementById("ranking");
-
-    function renderRanking(data) {
-      lista.innerHTML = "";
-      const jugadores = Object.values(data);
-      jugadores.sort((a, b) => b.puntuacion - a.puntuacion);
-      jugadores.forEach((jugador, index) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>#${index + 1}</strong> ${jugador.nombreJugador} — ${jugador.puntuacion} pts`;
-        lista.appendChild(li);
-      });
-    }
-
-    // Escuchar en tiempo real
-    const usuariosRef = ref(db, 'usuarios');
-    onValue(usuariosRef, (snapshot) => {
-      if (snapshot.exists()) {
-        renderRanking(snapshot.val());
-      } else {
-        lista.innerHTML = "<li>No hay datos de jugadores.</li>";
-      }
-    });
-  </script>
-
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #f2f2f2;
-      color: #333;
-      text-align: center;
-      padding: 40px;
-    }
-    h1 {
-      margin-bottom: 30px;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      max-width: 400px;
-      margin: auto;
-    }
-    li {
-      background: white;
-      margin: 10px 0;
-      padding: 15px 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      font-size: 18px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ranking de Usuarios</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  table { border-collapse: collapse; width: 100%; max-width: 600px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  th { background-color: #f2f2f2; }
+</style>
 </head>
 <body>
-  <h1>🏆 Ranking de Jugadores</h1>
-  <ul id="ranking">
-    <li>Cargando...</li>
-  </ul>
+
+<h1>Ranking de Usuarios</h1>
+<table id="ranking-table">
+  <thead>
+    <tr>
+      <th>Posición</th>
+      <th>Usuario</th>
+      <th>Puntuación</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Aquí se insertan los usuarios -->
+  </tbody>
+</table>
+
+<script type="module">
+// Importar funciones necesarias de Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+// Configuración Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAcnoVa8KN56wfWr0hJ_-26OUVVQ3H_H2k",
+  authDomain: "ranking-393eb.firebaseapp.com",
+  databaseURL: "https://ranking-393eb-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ranking-393eb",
+  storageBucket: "ranking-393eb.firebasestorage.app",
+  messagingSenderId: "577046310067",
+  appId: "1:577046310067:web:243c11e1fa2e94fc2a14c6",
+  measurementId: "G-TMHNC6G8ZM"
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Referencia a la rama "usuarios"
+const usuariosRef = ref(db, 'usuarios');
+
+// Función para cargar y mostrar ranking
+async function cargarRanking() {
+  try {
+    const snapshot = await get(usuariosRef);
+    if (snapshot.exists()) {
+      const usuariosData = snapshot.val();
+
+      // Vamos a crear un array con objetos {nombre: string, puntuacion: number}
+      const ranking = [];
+
+      // La estructura que muestras es anidada, según ejemplo:
+      // usuarios -> "nombreUsuario" -> nombreJugador -> "nombreUsuario" -> {puntuacion: X}
+      // Por ejemplo: usuarios["\"hola"].nombreJugador["\"hola"].puntuacion
+
+      for (const usuarioKey in usuariosData) {
+        const nombreJugadorObj = usuariosData[usuarioKey].nombreJugador;
+        if (!nombreJugadorObj) continue;
+
+        // nombreJugadorObj puede tener varios usuarios con puntuaciones, iteramos:
+        for (const nombreJugadorKey in nombreJugadorObj) {
+          const puntuacionObj = nombreJugadorObj[nombreJugadorKey];
+          if (puntuacionObj && typeof puntuacionObj.puntuacion === 'number') {
+            // Guardamos el usuario sin las comillas escapadas para mostrar limpio
+            const nombreLimpio = usuarioKey.replace(/\"/g, '') || nombreJugadorKey.replace(/\"/g, '');
+            ranking.push({
+              nombre: nombreLimpio,
+              puntuacion: puntuacionObj.puntuacion
+            });
+          }
+        }
+      }
+
+      // Ordenar ranking de mayor a menor puntuación
+      ranking.sort((a, b) => b.puntuacion - a.puntuacion);
+
+      // Mostrar en tabla
+      const tbody = document.querySelector("#ranking-table tbody");
+      tbody.innerHTML = "";
+
+      ranking.forEach((user, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${user.nombre}</td>
+          <td>${user.puntuacion}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      console.log("No hay datos en usuarios");
+    }
+  } catch (error) {
+    console.error("Error leyendo usuarios:", error);
+  }
+}
+
+// Cargar ranking al iniciar
+cargarRanking();
+
+</script>
+
 </body>
 </html>
